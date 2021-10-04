@@ -67,7 +67,7 @@ public class MainController extends TelegramLongPollingBot {
 
                 if (text.equals("/start") || text.equals("/help") || text.equals("/settings")) {
                     sendMsg(this.generalController.handle(text, chatId, messageId));
-                } else if (this.translatorController.getLangMap().containsKey(chatId)) {
+                } else if (this.translatorController.getLangsMap().containsKey(chatId)) {
                     sendMsg(this.translatorController.handle(text, chatId, messageId));
                 }
 

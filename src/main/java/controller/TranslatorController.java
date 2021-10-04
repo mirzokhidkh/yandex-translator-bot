@@ -10,15 +10,13 @@ import model.DicResult;
 import model.TrItem;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static enums.MessageType.EDIT;
 import static enums.MessageType.MESSAGE;
@@ -28,7 +26,7 @@ import static util.KeyboardButtons.*;
 
 @Data
 public class TranslatorController {
-    private Map<Long, String> langMap = new HashMap<>();
+    private Map<Long, String> langsMap = new HashMap<>();
     static final String KEY = "dict.1.1.20211002T091939Z.2e4a88e184b9a2a3.e25fb1fc148fb50552c219d440e75afa7e913758";
 
     public CodeMessage handle(String text, Long chatId, Integer messageId) {
@@ -40,18 +38,20 @@ public class TranslatorController {
         editMessageText.setChatId(String.valueOf(chatId));
 
         if (text.startsWith(EN) || text.startsWith(RU) || text.startsWith(TR)) {
+            if (langsMap.containsKey(chatId)) {
+                langsMap.remove(chatId);
+            }
             editMessageText.setMessageId(messageId);
             switch (text) {
                 case EN:
-                    editMessageText.setText("Welcome to *yandex-translator* bot.\n" +
-                            "Choose one of the following languages depending on which language you enter your word.");
+                    editMessageText.setText("Choose one of them: ");
                     editMessageText.setParseMode("Markdown");
                     editMessageText.setReplyMarkup(
                             keyboardMarkup(
                                     rowCollection(
                                             row(
-                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":gb:EN :arrow_right: :ru:RU"), EN_RU),
-                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":gb:EN :arrow_right: :tr:TR"), EN_TR)
+                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":gb:EN :arrow_right: RU:ru:"), EN_RU),
+                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":gb:EN :arrow_right: TR:tr:"), EN_TR)
                                             ),
                                             row(
                                                     inlineKeyboardButton("Back", MENU, ":back:")
@@ -68,16 +68,13 @@ public class TranslatorController {
                     break;
                 case EN_RU:
                     editMessageText.setText("Enter word : ");
-                    if (!langMap.containsKey(chatId)) {
-                        langMap.put(chatId, EN_RU.toLowerCase());
-                    } else {
-                        langMap.remove(chatId);
-                    }
+                    langsMap.put(chatId, EN_RU.toLowerCase());
                     codeMessage.setEditMessageText(editMessageText);
                     codeMessage.setType(EDIT);
                     break;
                 case EN_TR:
                     editMessageText.setText("Enter word : ");
+                    langsMap.put(chatId, EN_TR.toLowerCase());
                     codeMessage.setEditMessageText(editMessageText);
                     codeMessage.setType(EDIT);
                     break;
@@ -90,8 +87,8 @@ public class TranslatorController {
         }
 
 
-        if (langMap.containsKey(chatId)) {
-            String lang = langMap.get(chatId);
+        if (langsMap.containsKey(chatId)) {
+            String lang = langsMap.get(chatId);
             List<String> translations = translate(lang, text);
             if (translations.size()==0) {
                 sendMessage.setText("Sorry , this word translation does not found");
@@ -103,13 +100,7 @@ public class TranslatorController {
                 sendMessage.setText(String.valueOf(str));
             }
             sendMessage.setReplyMarkup(
-                    keyboardMarkup(
-                            rowCollection(
-                                    row(
-                                            inlineKeyboardButton("Back", EN, ":back:")
-                                    )
-                            )
-                    )
+                    getBackBtn(lang.substring(0,2).toUpperCase())
             );
             codeMessage.setSendMessage(sendMessage);
             codeMessage.setType(MESSAGE);
@@ -117,6 +108,16 @@ public class TranslatorController {
 
 
         return codeMessage;
+    }
+
+    private InlineKeyboardMarkup getBackBtn(String lang) {
+        return keyboardMarkup(
+                rowCollection(
+                        row(
+                                inlineKeyboardButton("Back", lang, ":back:")
+                        )
+                )
+        );
     }
 
 
