@@ -1,0 +1,60 @@
+{
+  "head": {},
+  "def": [
+    {
+      "text": "time",
+      "pos": "noun",
+      "tr": [
+        {
+          "text": "время",
+          "pos": "существительное",
+          "syn": [
+            {
+              "text": "раз"
+            },
+            {
+              "text": "тайм"
+            }
+          ],
+          "mean": [
+            {
+              "text": "timing"
+            },
+            {
+              "text": "fold"
+            },
+            {
+              "text": "half"
+            }
+          ],
+          "ex": [
+            {
+              "text": "prehistoric time",
+              "tr": [
+                {
+                  "text": "доисторическое время"
+                }
+              ]
+            },
+            {
+              "text": "hundredth time",
+              "tr": [
+                {
+                  "text": "сотый раз"
+                }
+              ]
+            },
+            {
+              "text": "time-slot",
+              "tr": [
+                {
+                  "text": "тайм-слот"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

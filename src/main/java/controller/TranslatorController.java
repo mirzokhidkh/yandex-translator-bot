@@ -5,9 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.vdurmont.emoji.EmojiParser;
 import dto.CodeMessage;
 import lombok.Data;
-import model.DefItem;
-import model.DicResult;
-import model.TrItem;
+import model.*;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -63,18 +61,51 @@ public class TranslatorController {
                     codeMessage.setType(EDIT);
                     break;
                 case RU:
-                    break;
-                case TR:
-                    break;
-                case EN_RU:
-                    editMessageText.setText("Enter word : ");
-                    langsMap.put(chatId, EN_RU.toLowerCase());
+                    editMessageText.setText("Choose one of them: ");
+                    editMessageText.setParseMode("Markdown");
+                    editMessageText.setReplyMarkup(
+                            keyboardMarkup(
+                                    rowCollection(
+                                            row(
+                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":ru:RU :arrow_right: EN:gb:"), RU_EN),
+                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":ru:RU :arrow_right: TR:tr:"), RU_TR)
+                                            ),
+                                            row(
+                                                    inlineKeyboardButton("Back", MENU, ":back:")
+                                            )
+                                    )
+                            )
+                    );
                     codeMessage.setEditMessageText(editMessageText);
                     codeMessage.setType(EDIT);
                     break;
+                case TR:
+                    editMessageText.setText("Choose one of them: ");
+                    editMessageText.setParseMode("Markdown");
+                    editMessageText.setReplyMarkup(
+                            keyboardMarkup(
+                                    rowCollection(
+                                            row(
+                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":tr:TR :arrow_right: EN:gb:"), TR_EN),
+                                                    inlineKeyboardButton(EmojiParser.parseToUnicode(":tr:TR :arrow_right: RU:ru:"), TR_RU)
+                                            ),
+                                            row(
+                                                    inlineKeyboardButton("Back", MENU, ":back:")
+                                            )
+                                    )
+                            )
+                    );
+                    codeMessage.setEditMessageText(editMessageText);
+                    codeMessage.setType(EDIT);
+                    break;
+                case EN_RU:
                 case EN_TR:
+                case RU_EN:
+                case RU_TR:
+                case TR_EN:
+                case TR_RU:
                     editMessageText.setText("Enter word : ");
-                    langsMap.put(chatId, EN_TR.toLowerCase());
+                    langsMap.put(chatId, text.toLowerCase());
                     codeMessage.setEditMessageText(editMessageText);
                     codeMessage.setType(EDIT);
                     break;
@@ -89,18 +120,47 @@ public class TranslatorController {
 
         if (langsMap.containsKey(chatId)) {
             String lang = langsMap.get(chatId);
-            List<String> translations = translate(lang, text);
-            if (translations.size()==0) {
+            List<TrItem> translations = translate(lang, text);
+            if (translations.size() == 0) {
                 sendMessage.setText("Sorry , this word translation does not found");
-            }else {
+            } else {
                 StringBuilder str = new StringBuilder();
-                for (String translation : translations) {
-                    str.append(translation).append(", ");
+                int i = 0;
+                for (TrItem trItem : translations) {
+                    str.append("*").append(++i).append(" - translation : ").append("*").append("_").append(trItem.getText()).append("_");
+                    str.append("\n");
+                    if (trItem.getSyn() != null) {
+                        str.append("*").append("Synonym : ").append("*");
+                        for (SynItem synItem : trItem.getSyn()) {
+                            str.append("_").append(synItem.getText()).append("_")   ;
+                        }
+                        str.append("\n");
+                    }
+                    if (trItem.getMean() != null) {
+                        str.append("*").append("Meaning : ").append("*");
+                        for (MeanItem meanItem : trItem.getMean()) {
+                            str.append("_").append(meanItem.getText()).append("_");
+                        }
+                        str.append("\n");
+                    }
+                    if (trItem.getEx() != null) {
+                        str.append("*").append("Examples : ").append("*");
+                        str.append("\n");
+                        for (ExItem ex : trItem.getEx()) {
+                            str.append("\t\t").append("_").append(ex.getText()).append(" - ");
+                            for (TrItem item : ex.getTr()) {
+                                str.append(item.getText()).append("_");
+                            }
+                            str.append("\n");
+                        }
+                    }
+                    str.append("------------------------------------------------------------------------\n");
                 }
                 sendMessage.setText(String.valueOf(str));
+                sendMessage.setParseMode("Markdown");
             }
             sendMessage.setReplyMarkup(
-                    getBackBtn(lang.substring(0,2).toUpperCase())
+                    getBackBtn(lang.substring(0, 2).toUpperCase())
             );
             codeMessage.setSendMessage(sendMessage);
             codeMessage.setType(MESSAGE);
@@ -120,9 +180,8 @@ public class TranslatorController {
         );
     }
 
-
-    public static List<String> translate(String lang, String text) {
-        List<String> translations = new ArrayList<>();
+    public static List<TrItem> translate(String lang, String text) {
+        List<TrItem> translations = new ArrayList<>();
         try {
             URL url = new URL("https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=" + KEY + "&lang=" + lang + "&text=" + text);
             URLConnection connection = url.openConnection();
@@ -131,8 +190,8 @@ public class TranslatorController {
             DicResult dicResult = gson.fromJson(reader, DicResult.class);
             for (DefItem defItem : dicResult.getDef()) {
                 for (TrItem trItem : defItem.getTr()) {
-                    translations.add(trItem.getText());
-                    System.out.println(trItem.getText());
+                    translations.add(trItem);
+//                    System.out.println(trItem.getText());
                 }
             }
 
@@ -141,4 +200,25 @@ public class TranslatorController {
         }
         return translations;
     }
+
+//    public static List<String> translate(String lang, String text) {
+//        List<String> translations = new ArrayList<>();
+//        try {
+//            URL url = new URL("https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=" + KEY + "&lang=" + lang + "&text=" + text);
+//            URLConnection connection = url.openConnection();
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            InputStreamReader reader = new InputStreamReader(connection.getInputStream());
+//            DicResult dicResult = gson.fromJson(reader, DicResult.class);
+//            for (DefItem defItem : dicResult.getDef()) {
+//                for (TrItem trItem : defItem.getTr()) {
+//                    translations.add(trItem.getText());
+////                    System.out.println(trItem.getText());
+//                }
+//            }
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        return translations;
+//    }
 }
